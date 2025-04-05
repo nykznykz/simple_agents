@@ -18,7 +18,7 @@ demo = gr.ChatInterface(
     title="🧠 Simple Agents",
     chatbot=gr.Chatbot(),
     textbox=gr.Textbox(placeholder="Ask me something...", lines=1),
-    examples=["Greet Alice", "Reverse the name Bob", "hi I'm John"],
+    examples=["What is the current price of Bitcoin in USD?", "What's the weather in Tokyo today?"],
     theme="soft",  # optional
 )
 
