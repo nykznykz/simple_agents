@@ -3,6 +3,11 @@ from ollama import chat
 
 from agents.greet.agent import GreetUserAgent
 from agents.greet.tools import GreetUserTool, ReverseNameTool
+
+from agents.web_search.agent import WebSearchAgent
+from agents.web_search.tools import WebSearchTool
+
+
 from planner.llm_planner import LLMPlanner
 from utils.json_utils import extract_json
 
@@ -17,7 +22,7 @@ Only respond with the name of the agent as a JSON string. Do not include explana
 
 Available agents:
 1. greet — for greetings and name-based interactions
-
+2. websearch - to get real time information from the internet
 
 Respond in this format:
 {
@@ -35,6 +40,66 @@ Be friendly, clear, and helpful.
 
 
 
+def build_greet_agent(model: str) -> GreetUserAgent:
+    greet_prompt = """
+    You are an AI assistant that decides which tools to call and in what order based on user input.
+    
+    Only respond with JSON. Do not include any explanations or markdown.
+    
+    Available tools:
+    1. say_hello(name: string) — Greets the user by name.
+    2. name_backwards(name: string) — Reverses the user's name.
+    
+    Respond in this format:
+    {
+      "steps": [
+        {
+          "tool_name": "<tool_name>",
+          "arguments": {
+            "<arg1>": <value1>
+          }
+        }
+      ]
+    }
+    """
+
+    greet_agent = GreetUserAgent(
+        agent_name="GreeterAgent",
+        tools={
+            "say_hello": GreetUserTool(),
+            "name_backwards": ReverseNameTool()
+        },
+        planner=LLMPlanner(model=model, system_prompt=greet_prompt)
+    )
+    return greet_agent
+
+def build_web_search_agent(model: str) -> WebSearchAgent:
+    system_prompt = """
+    You are an AI assistant that decides how to answer a user's question using a web search tool.
+    
+    Available tools:
+    1. web_search(query: string) — performs a web search and returns short summaries of the top results.
+    
+    Only respond with JSON, do not include explanations or markdown.
+    Format:
+    {
+      "steps": [
+        {
+          "tool_name": "web_search",
+          "arguments": {
+            "query": "<search query>"
+          }
+        }
+      ]
+    }
+    """
+
+    planner = LLMPlanner(model=model, system_prompt=system_prompt)
+    tools = {"web_search": WebSearchTool()}
+
+    return WebSearchAgent(agent_name="WebSearchAgent", tools=tools, planner=planner)
+
+
 # --- Main Coordinator Class ---
 
 class CoordinatorAssistant:
@@ -43,38 +108,11 @@ class CoordinatorAssistant:
         self.agents = self._init_agents()
 
     def _init_agents(self):
-        greet_prompt = """
-You are an AI assistant that decides which tools to call and in what order based on user input.
-
-Only respond with JSON. Do not include any explanations or markdown.
-
-Available tools:
-1. say_hello(name: string) — Greets the user by name.
-2. name_backwards(name: string) — Reverses the user's name.
-
-Respond in this format:
-{
-  "steps": [
-    {
-      "tool_name": "<tool_name>",
-      "arguments": {
-        "<arg1>": <value1>
-      }
-    }
-  ]
-}
-"""
-        greet_agent = GreetUserAgent(
-            agent_name="GreeterAgent",
-            tools={
-                "say_hello": GreetUserTool(),
-                "name_backwards": ReverseNameTool()
-            },
-            planner=LLMPlanner(model=self.model, system_prompt=greet_prompt)
-        )
+        greet_agent = build_greet_agent(self.model)
+        web_search_agent = build_web_search_agent(self.model)
         return {
-            "greet": greet_agent
-            # Add "detect_scam": ScamDetectionAgent(...) when ready
+            "greet": greet_agent,
+            "websearch": web_search_agent
         }
 
     def route(self, user_input: str) -> str:
