@@ -1,0 +1,82 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.bak
+
+# Python egg info
+*.egg-info/
+.eggs/
+
+# Distribution / packaging
+build/
+dist/
+*.egg
+pip-wheel-metadata/
+*.manifest
+*.spec
+
+# Test and coverage
+.coverage
+.tox/
+.nox/
+.cache/
+pytest_cache/
+htmlcov/
+
+# IPython/Jupyter history and profile
+.ipython/
+
+# dotenv
+.env
+.env.*
+
+# MyPy, Pyright, Pyre, etc.
+.mypy_cache/
+.pyre/
+.pytype/
+
+# SQLite or other local db
+*.sqlite3
+*.db
+
+# Graph / ML tools
+wandb/
+mlruns/
+tensorboard_logs/
+lightning_logs/
+
+# System files
+*.sublime-workspace
+*.sublime-project
+
+# Gradio
+.gradio/
