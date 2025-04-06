@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 
 def test_coordinator_initialization(coordinator):
     """Test that the coordinator initializes correctly."""
-    assert coordinator.model == "mock-model"
+    assert coordinator.model == "gemma3:4b"
     assert "greet" in coordinator.agents
     assert "websearch" in coordinator.agents
 
@@ -35,10 +35,9 @@ def test_route_unknown_agent(mock_chat, coordinator):
 def test_run_with_greet_agent(mock_chat, coordinator):
     """Test the full run method with a greet agent."""
     # Mock the routing and formatting responses
-    mock_chat.return_value.message.content = '{"agent": "greet"}'
     mock_chat.side_effect = [
         MagicMock(message=MagicMock(content='{"agent": "greet"}')),  # For routing
-        MagicMock(message=MagicMock(content='Hello Alice! Nice to meet you!'))  # For formatting
+        MagicMock(message=MagicMock(content='Hello Alice! I am your friendly AI assistant. Nice to meet you!'))  # For formatting
     ]
     
     # Mock the agent's run method
@@ -50,8 +49,11 @@ def test_run_with_greet_agent(mock_chat, coordinator):
                 "input": {"name": "Alice"},
                 "output": {"greeting": "Hello Alice!"}
             }
-        ]
+        ],
+        "summary": "Hello Alice! Nice to meet you!"  # This is now just a suggestion for the coordinator
     })
     
     response = coordinator.run("Hello, my name is Alice")
-    assert "Hello Alice" in response 
+    assert isinstance(response, str)
+    assert "Hello" in response and "Alice" in response
+    assert mock_chat.call_count == 2  # Called once for routing and once for formatting 
