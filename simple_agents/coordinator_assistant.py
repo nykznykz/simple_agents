@@ -69,7 +69,7 @@ Respond in this format:
 """
 
 FORMATTER_PROMPT = """
-You are a helpful assistant. Given the user's original request and the structured outputs from multiple specialized agents, combine and summarize the responses in a natural, conversational way.
+You are a helpful assistant. Given the user's latest request, previous messages if relevant, and the structured outputs from multiple specialized agents, combine and summarize the responses in a natural, conversational way.
 
 Consider:
 - Combine information from different agents in a logical way
