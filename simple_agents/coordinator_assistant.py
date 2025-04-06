@@ -1,15 +1,18 @@
 import json
+import logging
 from ollama import chat
 
-from agents.greet.agent import GreetUserAgent
-from agents.greet.tools import GreetUserTool, ReverseNameTool
+from .agents.greet.agent import GreetUserAgent
+from .agents.greet.tools import GreetUserTool, ReverseNameTool
 
-from agents.web_search.agent import WebSearchAgent
-from agents.web_search.tools import WebSearchTool
+from .agents.web_search.agent import WebSearchAgent
+from .agents.web_search.tools import WebSearchTool
 
+from .planner.llm_planner import LLMPlanner
+from .utils.json_utils import extract_json
 
-from planner.llm_planner import LLMPlanner
-from utils.json_utils import extract_json
+# Get the root logger
+logger = logging.getLogger()
 
 MODEL = "gemma3:4b"
 
@@ -106,6 +109,7 @@ class CoordinatorAssistant:
     def __init__(self, model=MODEL):
         self.model = model
         self.agents = self._init_agents()
+        self.last_agent_messages = []
 
     def _init_agents(self):
         greet_agent = build_greet_agent(self.model)
@@ -122,19 +126,13 @@ class CoordinatorAssistant:
         ]
         response = chat(self.model, messages)
         routing = extract_json(response.message.content)
-        return routing.get("agent", "unknown")
+        agent_name = routing.get("agent", "unknown")
+        logger.info(f"Routing decision: {agent_name}")
+        return agent_name
 
-    # def format_response(self, agent_result: dict, user_input: str) -> str:
-    #     content = json.dumps(agent_result, indent=2)
-    #     messages = [
-    #         {"role": "system", "content": FORMATTER_PROMPT},
-    #         {"role": "user", "content": f"User input: {user_input}\n\nAgent result:\n{content}"}
-    #     ]
-    #     response = chat(self.model, messages)
-    #     return response.message.content.strip()
-    
     def format_response(self, agent_result: dict, user_input: str) -> str:
         content = json.dumps(agent_result, indent=2)
+        logger.info(f"Agent raw result: {content}")
     
         messages = [
             {"role": "system", "content": FORMATTER_PROMPT},
@@ -142,9 +140,13 @@ class CoordinatorAssistant:
         ]
     
         response = chat(self.model, messages)
-        return response.message.content.strip()
+        formatted_response = response.message.content.strip()
+        return formatted_response
 
     def run(self, user_input: str) -> str:
+        # Clear previous messages
+        self.last_agent_messages = []
+        
         agent_name = self.route(user_input)
 
         if agent_name not in self.agents:
@@ -156,5 +158,17 @@ class CoordinatorAssistant:
         }
 
         agent = self.agents[agent_name]
+        logger.info(f"Task sent to {agent_name}: {task}")
+        
         result = agent.run(task)
-        return self.format_response(result, user_input)
+        
+        # Log all messages from the agent
+        for msg_type, msg_content in agent.last_messages:
+            message = f"{agent_name} ({msg_type}) -> Coordinator: {msg_content}"
+            self.last_agent_messages.append((f"{agent_name} ({msg_type})", msg_content))
+            logger.info(message)
+        
+        formatted_response = self.format_response(result, user_input)
+        # Only log the final response once
+        logger.info(f"Final Response: {formatted_response}")
+        return formatted_response
