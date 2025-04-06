@@ -1,6 +1,6 @@
 from ollama import chat
 from ollama import ChatResponse
-from utils.json_utils import extract_json
+from ..utils.json_utils import extract_json
 
 
 class LLMPlanner:
