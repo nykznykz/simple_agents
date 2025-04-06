@@ -109,7 +109,6 @@ class CoordinatorAssistant:
     def __init__(self, model=MODEL):
         self.model = model
         self.agents = self._init_agents()
-        self.last_agent_messages = []
 
     def _init_agents(self):
         greet_agent = build_greet_agent(self.model)
@@ -145,7 +144,6 @@ class CoordinatorAssistant:
 
     def run(self, user_input: str) -> str:
         # Clear previous messages
-        self.last_agent_messages = []
         
         agent_name = self.route(user_input)
 
@@ -165,7 +163,6 @@ class CoordinatorAssistant:
         # Log all messages from the agent
         for msg_type, msg_content in agent.last_messages:
             message = f"{agent_name} ({msg_type}) -> Coordinator: {msg_content}"
-            self.last_agent_messages.append((f"{agent_name} ({msg_type})", msg_content))
             logger.info(message)
         
         formatted_response = self.format_response(result, user_input)
