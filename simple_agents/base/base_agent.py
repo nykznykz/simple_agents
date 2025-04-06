@@ -6,14 +6,14 @@ class BaseAgent:
         self.tools = tools or {}
         self.planner = planner
         self.state = {}
-        self.last_messages = []
+        self.messages = {}  # Dictionary to store latest messages by type
         self.logger = logging.getLogger()
 
     def receive_task(self, task: dict):
         self.task = task
         self.state = {"status": "received", "task_type": task.get("task_type")}
-        # Log the received task
-        self.last_messages.append(("task_received", str(task)))
+        # Store the latest task received message
+        self.messages["task_received"] = str(task)
         self.logger.info(f"{self.agent_name} received task: {task}")
 
     def plan(self):
@@ -26,7 +26,6 @@ class BaseAgent:
         self.receive_task(task)
         self.plan()
         result = self.execute()
-        # Log the final result
-        self.last_messages.append(("result", str(result)))
-        self.logger.info(f"{self.agent_name} produced result: {result}")
+        # Store the latest result message
+        self.messages["result"] = str(result)
         return result

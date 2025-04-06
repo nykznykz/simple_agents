@@ -143,8 +143,6 @@ class CoordinatorAssistant:
         return formatted_response
 
     def run(self, user_input: str) -> str:
-        # Clear previous messages
-        
         agent_name = self.route(user_input)
 
         if agent_name not in self.agents:
@@ -160,10 +158,12 @@ class CoordinatorAssistant:
         
         result = agent.run(task)
         
-        # Log all messages from the agent
-        for msg_type, msg_content in agent.last_messages:
-            message = f"{agent_name} ({msg_type}) -> Coordinator: {msg_content}"
-            logger.info(message)
+        # Log the final result from the agent
+        if "result" in agent.messages:
+            logger.info(f"{agent_name} (task_received) -> Coordinator: {agent.messages['task_received']}")
+
+        if "result" in agent.messages:
+            logger.info(f"{agent_name} (result) -> Coordinator: {agent.messages['result']}")
         
         formatted_response = self.format_response(result, user_input)
         # Only log the final response once
