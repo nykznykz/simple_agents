@@ -7,7 +7,7 @@ from simple_agents.planner.llm_planner import LLMPlanner
 @pytest.fixture
 def mock_model():
     """Mock the LLM model for testing."""
-    return "mock-model"
+    return "gemma3:4b"
 
 @pytest.fixture
 def coordinator(mock_model):

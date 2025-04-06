@@ -109,7 +109,6 @@ class CoordinatorAssistant:
     def __init__(self, model=MODEL):
         self.model = model
         self.agents = self._init_agents()
-        self.last_agent_messages = []
 
     def _init_agents(self):
         greet_agent = build_greet_agent(self.model)
@@ -131,22 +130,25 @@ class CoordinatorAssistant:
         return agent_name
 
     def format_response(self, agent_result: dict, user_input: str) -> str:
-        content = json.dumps(agent_result, indent=2)
-        logger.info(f"Agent raw result: {content}")
-    
+        """Format the agent's result into a natural response."""
+        # Log the raw result for debugging
+        logger.info(f"Agent raw result: {json.dumps(agent_result, indent=2)}")
+        
         messages = [
             {"role": "system", "content": FORMATTER_PROMPT},
-            {"role": "user", "content": f"Conversation so far:\n{user_input}\n\nAgent result:\n{content}"}
+            {"role": "user", "content": f"""Here is the user's input and the agent's result:
+
+User Input: {user_input}
+
+Agent Result: {json.dumps(agent_result, indent=2)}
+
+The agent has provided their results and a suggested summary. Please review this and provide a natural, conversational response that best answers the user's question. You can use the agent's summary as a suggestion, but feel free to rephrase or restructure the response if it would be more helpful or natural."""}
         ]
-    
+        
         response = chat(self.model, messages)
-        formatted_response = response.message.content.strip()
-        return formatted_response
+        return response.message.content
 
     def run(self, user_input: str) -> str:
-        # Clear previous messages
-        self.last_agent_messages = []
-        
         agent_name = self.route(user_input)
 
         if agent_name not in self.agents:
@@ -162,11 +164,12 @@ class CoordinatorAssistant:
         
         result = agent.run(task)
         
-        # Log all messages from the agent
-        for msg_type, msg_content in agent.last_messages:
-            message = f"{agent_name} ({msg_type}) -> Coordinator: {msg_content}"
-            self.last_agent_messages.append((f"{agent_name} ({msg_type})", msg_content))
-            logger.info(message)
+        # Log the final result from the agent
+        if "result" in agent.messages:
+            logger.info(f"{agent_name} (task_received) -> Coordinator: {agent.messages['task_received']}")
+
+        if "result" in agent.messages:
+            logger.info(f"{agent_name} (result) -> Coordinator: {agent.messages['result']}")
         
         formatted_response = self.format_response(result, user_input)
         # Only log the final response once
