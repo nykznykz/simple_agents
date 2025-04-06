@@ -130,17 +130,23 @@ class CoordinatorAssistant:
         return agent_name
 
     def format_response(self, agent_result: dict, user_input: str) -> str:
-        content = json.dumps(agent_result, indent=2)
-        logger.info(f"Agent raw result: {content}")
-    
+        """Format the agent's result into a natural response."""
+        # Log the raw result for debugging
+        logger.info(f"Agent raw result: {json.dumps(agent_result, indent=2)}")
+        
         messages = [
             {"role": "system", "content": FORMATTER_PROMPT},
-            {"role": "user", "content": f"Conversation so far:\n{user_input}\n\nAgent result:\n{content}"}
+            {"role": "user", "content": f"""Here is the user's input and the agent's result:
+
+User Input: {user_input}
+
+Agent Result: {json.dumps(agent_result, indent=2)}
+
+The agent has provided their results and a suggested summary. Please review this and provide a natural, conversational response that best answers the user's question. You can use the agent's summary as a suggestion, but feel free to rephrase or restructure the response if it would be more helpful or natural."""}
         ]
-    
+        
         response = chat(self.model, messages)
-        formatted_response = response.message.content.strip()
-        return formatted_response
+        return response.message.content
 
     def run(self, user_input: str) -> str:
         agent_name = self.route(user_input)
