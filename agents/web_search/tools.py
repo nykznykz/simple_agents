@@ -9,4 +9,5 @@ class WebSearchTool(BaseTool):
 
         with DDGS() as ddgs:
             results = [r["body"] for r in ddgs.text(query, max_results=3)]
+        print(f"[WebSearchTool] Query results: {results}")
         return {"results": results}
