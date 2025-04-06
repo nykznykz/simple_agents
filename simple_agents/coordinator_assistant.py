@@ -250,7 +250,8 @@ Please provide a natural, conversational response that combines all the relevant
             
             task = {
                 "task_type": agent_name,
-                "user_input": agent_assignment["task"],
+                "user_input": user_input,  # Pass the original user input
+                "task": agent_assignment["task"],  # Pass the coordinator's task
                 "context": agent_assignment.get("context", {}),  # Pass the extracted context
                 "previous_results": results  # Pass previous results as context
             }
