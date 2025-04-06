@@ -112,26 +112,15 @@ def respond(message, chat_history):
     return "", chat_history, log_trace
 
 # Create the main interface
-with gr.Blocks(title="🧠 Simple Agents") as demo:
+with gr.Blocks(title="🧠 Simple Agents", fill_width=True, fill_height=True) as demo:
     gr.Markdown("# 🧠 Simple Agents")
-    
-    # Add a button to clear the chat log
-    with gr.Row():
-        clear_btn = gr.Button("Clear Chat Log")
-        clear_output = gr.Textbox(label="Status", interactive=False)
     
     # Create the chat interface
     chat_interface = gr.ChatInterface(
         fn=chat_with_assistant,
-        examples=["What is the current price of Bitcoin in USD?", "What's the weather in Tokyo today?"],
+        examples=["What is the current price of Bitcoin in USD?", "What's the temperature in Tokyo today?"],
         title="Chat with Assistant",
         theme="soft"
-    )
-    
-    # Connect the clear button to the clear function
-    clear_btn.click(
-        fn=clear_chat_log,
-        outputs=clear_output
     )
 
 if __name__ == "__main__":
