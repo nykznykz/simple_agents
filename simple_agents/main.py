@@ -118,7 +118,7 @@ with gr.Blocks(title="🧠 Simple Agents", fill_width=True, fill_height=True) as
     # Create the chat interface
     chat_interface = gr.ChatInterface(
         fn=chat_with_assistant,
-        examples=["What is the current price of Bitcoin in USD?", "What's the temperature in Tokyo today?"],
+        examples=["What is the current price of Bitcoin in USD?", "What's the temperature in Tokyo today?", "what is the price of bitcoin? btw my name is John, I would like to know my name backwards"],
         title="Chat with Assistant",
         theme="soft"
     )

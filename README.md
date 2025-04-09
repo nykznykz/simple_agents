@@ -8,46 +8,42 @@ This project is built around the concept of autonomous agents that:
 2. Use an LLM planner to decide which tools to call
 3. Execute tools in sequence
 4. Return structured outputs including a suggested summary
-5. The Coordinator routes user input to the right agent and uses another LLM to produce a final conversational reply, using the agent's summary as a suggestion.
+5. The Coordinator routes user input to the right agent(s) and uses another LLM to produce a final conversational reply, using the agent's summary as a suggestion.
+
+Key Features:
+- **Multi-Agent Coordination**: Handle complex queries requiring multiple agents
+- **Context Sharing**: Agents can access and build upon previous results
+- **Message History**: Maintain context across multiple interactions
+- **Natural Responses**: Combine multiple agent outputs into coherent responses
 
 # 📊 Example Interaction
-Here's a real example from the chat log showing how the system processes a user query about Bitcoin's price:
+Here's a real example showing how the system processes a complex query requiring multiple agents:
 
 ```log
-# User asks about Bitcoin price
-2025-04-06 16:49:11,263 - INFO - User Query: What is the current price of Bitcoin in USD?
+# User asks about Bitcoin price and name reversal
+2025-04-09 22:14:04,021 - INFO - User Query: What is the price of bitcoin? btw my name is John, I would like to know my name backwards
 
-# Coordinator routes the query to the websearch agent
-2025-04-06 16:49:15,135 - INFO - Routing decision: websearch
-2025-04-06 16:49:15,136 - INFO - Task sent to websearch: {'task_type': 'websearch', 'user_input': '\nUser: What is the current price of Bitcoin in USD?'}
-
-# WebSearchAgent plans and executes the search
-2025-04-06 16:49:15,834 - INFO - WebSearchAgent planned steps: [{'tool_name': 'web_search', 'arguments': {'query': 'bitcoin price usd'}}]
-2025-04-06 16:49:15,834 - INFO - Querying DuckDuckGo: bitcoin price usd
-
-# Search results are received and processed
-2025-04-06 16:49:16,607 - INFO - Query results: ['The live Bitcoin price today is $83,713.14 USD...', ...]
-
-# Agent returns structured results with a suggested summary
-2025-04-06 16:49:18,029 - INFO - WebSearchAgent produced result: {
-  "agent": "WebSearchAgent",
-  "results": [
-    {
-      "tool": "web_search",
-      "input": {"query": "bitcoin price usd"},
-      "output": {
-        "results": [
-          "The live Bitcoin price today is $83,713.14 USD...",
-          "Get the latest Bitcoin (BTC / USD) real-time quote...",
-          "The price of Bitcoin (BTC) is $83,674.78 today..."
-        ]
-      }
+# Coordinator routes the query to multiple agents
+2025-04-09 22:14:04,021 - INFO - Routing decision: [
+  {
+    "agent": "greet",
+    "task": "Greet the user by name and perform name reversal",
+    "context": {
+      "relevant_info": "User's name is John",
+      "user_intent": "Request greeting and name reversal",
+      "required_tools": ["say_hello(name: string)", "name_backwards(name: string)"]
     }
-  ],
-  "summary": "As of today, April 4, 2025, at 7:31 pm EDT, the live Bitcoin (BTC) price is $83,674.78 USD. 
-  The 24-hour trading volume is $25.3 billion. Bitcoin is currently up 1.25% in the last 24 hours and 
-  holds the #1 ranking on CoinMarketCap with a market cap of $1,661,431,078,832 USD."
-}
+  },
+  {
+    "agent": "websearch",
+    "task": "Retrieve the current price of Bitcoin",
+    "context": {
+      "relevant_info": "User is asking about Bitcoin price",
+      "user_intent": "Find the current price of Bitcoin",
+      "required_tools": ["web_search(query: string)"]
+    }
+  }
+]
 
 # Coordinator formats a natural response using the agent's summary as a suggestion
 2025-04-06 16:49:19,293 - INFO - Final Response: Okay, great question! As of today, April 4th, 2025, 
@@ -56,11 +52,11 @@ and it's the most popular cryptocurrency with a market cap of $1.66 trillion.
 ```
 
 This example shows:
-1. How the coordinator routes queries to appropriate agents
-2. How agents plan and execute their tasks
-3. The structured format of agent results, including a suggested summary
-4. How the coordinator uses the agent's summary as a suggestion to create a natural response
-5. The difference between the agent's detailed summary and the coordinator's more conversational response
+1. How the coordinator routes queries to multiple appropriate agents
+2. How agents plan and execute their tasks in parallel
+3. How context is shared between agents
+4. How the coordinator combines multiple results into a natural response
+5. The structured format of agent results and context sharing
 
 # 📝 Project Structure
 ```
@@ -101,52 +97,143 @@ class MyCustomTool(BaseTool):
         return {"result": "your result"}
 ```
 
-Register the tool in the agent's initialization:
+# 🧠 Adding a New Agent
+Here's an example of adding a new agent to handle mathematical calculations:
 
-```python
-tools = {
-    "my_custom_tool": MyCustomTool(),
-    # ... other tools
-}
+1. Create a new directory and files:
+```bash
+mkdir -p simple_agents/agents/math
+touch simple_agents/agents/math/agent.py
+touch simple_agents/agents/math/tools.py
 ```
 
-Update the agent's system prompt to include the new tool's description.
+2. Implement the tools in `tools.py`:
+```python
+from simple_agents.base.base_tool import BaseTool
 
-# 🧠 Adding a New Agent
-1. Create a new directory in `agents/` for your agent
-2. Create `agent.py` and `tools.py` files
-3. Implement your agent by subclassing `BaseAgent`:
+class CalculateTool(BaseTool):
+    def run(self, input_data: dict) -> dict:
+        expression = input_data.get("expression")
+        try:
+            result = eval(expression)  # Note: In production, use a safer evaluation method
+            return {"result": result}
+        except Exception as e:
+            return {"error": str(e)}
 
+class ConvertUnitsTool(BaseTool):
+    def run(self, input_data: dict) -> dict:
+        value = input_data.get("value")
+        from_unit = input_data.get("from_unit")
+        to_unit = input_data.get("to_unit")
+        # Implement unit conversion logic
+        return {"result": converted_value}
+```
+
+3. Implement the agent in `agent.py`:
 ```python
 from simple_agents.base.base_agent import BaseAgent
+from simple_agents.planner.llm_planner import LLMPlanner
+from .tools import CalculateTool, ConvertUnitsTool
 
-class MyCustomAgent(BaseAgent):
-    def plan(self):
-        # Use self.planner to generate a plan
-        pass
-
-    def execute(self):
-        # Execute the planned steps
-        pass
+class MathAgent(BaseAgent):
+    def __init__(self, model: str):
+        system_prompt = """
+        You are a math assistant that helps with calculations and unit conversions.
+        Available tools:
+        1. calculate(expression: string) - Evaluates a mathematical expression
+        2. convert_units(value: number, from_unit: string, to_unit: string) - Converts between units
+        
+        Respond with a JSON array of steps to execute.
+        """
+        
+        tools = {
+            "calculate": CalculateTool(),
+            "convert_units": ConvertUnitsTool()
+        }
+        
+        planner = LLMPlanner(model=model, system_prompt=system_prompt)
+        super().__init__("MathAgent", tools, planner)
 
     def run(self, task: dict) -> dict:
-        # Override run to include a summary in the result
         result = super().run(task)
-        result["summary"] = "Your suggested summary here"
+        # Add a natural language summary of the calculation
+        result["summary"] = f"The result is {result['results'][0]['output']['result']}"
         return result
 ```
 
-4. Add your agent to the CoordinatorAssistant's initialization:
-
+4. Add the agent to the CoordinatorAssistant in `coordinator_assistant.py`:
 ```python
+from simple_agents.agents.math.agent import MathAgent
+
 def _init_agents(self):
     return {
-        "my_agent": MyCustomAgent(...),
-        # ... other agents
+        "greet": build_greet_agent(self.model),
+        "websearch": build_web_search_agent(self.model),
+        "math": MathAgent(self.model)  # Add the new agent
     }
 ```
 
-5. Update the routing prompt in `coordinator_assistant.py` to include your new agent.
+5. Update the routing prompt in `coordinator_assistant.py` to include the new agent:
+```python
+ROUTER_PROMPT = """
+You are a smart routing agent. Given a user message, decide which agents should handle it.
+
+Available agents:
+1. greet - for greetings and name-based interactions
+2. websearch - to get real time information from the internet
+3. math - to perform calculations and unit conversions
+...
+"""
+```
+
+Now the coordinator can route mathematical queries to the new agent:
+```python
+# Example usage
+coordinator = CoordinatorAssistant()
+response = coordinator.run([{"role": "user", "content": "What is 2 + 2?"}])
+```
+
+# 🎯 Message Format
+The system uses a structured message format to maintain context and share information between agents:
+
+```python
+{
+    "task_type": "agent_name",
+    "user_input": "current user message",
+    "message_history": [
+        {"role": "user", "content": "previous message 1"},
+        {"role": "assistant", "content": "previous response 1"}
+    ],
+    "task": "specific task description",
+    "context": {
+        "relevant_info": "extracted relevant information",
+        "user_intent": "user's intent",
+        "required_tools": ["tool1", "tool2"]
+    },
+    "previous_results": [
+        {
+            "agent": "previous_agent",
+            "results": [...],
+            "summary": "previous result summary"
+        }
+    ]
+}
+```
+
+# 🎯 Available Agents
+
+## Greet Agent
+- **Purpose**: Handles greetings and name-based interactions
+- **Tools**:
+  - `say_hello(name)`: Greets the user by name
+  - `name_backwards(name)`: Reverses the user's name
+- **Use Cases**: Greetings, name manipulations, personal interactions
+
+## Web Search Agent
+- **Purpose**: Gets real-time information from the internet
+- **Tools**:
+  - `web_search(query)`: Performs web searches and returns summaries
+- **Use Cases**: Current events, factual information, real-time data
 
 # 🚀 Running the Application
 1. Install dependencies:
